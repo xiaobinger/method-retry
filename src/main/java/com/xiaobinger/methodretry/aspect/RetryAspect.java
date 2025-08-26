@@ -92,6 +92,9 @@ public class RetryAspect {
         } catch (RetryException e) {
             //命中重试异常
             reTry = true;
+            if (reTryCount <= 0) {
+                throw e;
+            }
         }
         if (reTry && reTryCount > 0) {
             v = reTry(func,reTryCondition,reTryCount);
