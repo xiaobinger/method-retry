@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>${project.groupId}</groupId>
     <artifactId>method-retry</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>method-retry</name>
     <description>method-retry</description>
     <properties>

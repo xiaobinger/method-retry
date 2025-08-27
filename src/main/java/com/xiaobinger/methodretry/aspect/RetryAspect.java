@@ -1,6 +1,7 @@
 
 package com.xiaobinger.methodretry.aspect;
 
+import com.sun.xml.internal.ws.util.CompletedFuture;
 import com.xiaobinger.methodretry.exception.RetryException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -14,6 +15,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 
@@ -35,6 +37,25 @@ public class RetryAspect {
     public Object retryForCondition(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Retry retry = signature.getMethod().getAnnotation(Retry.class);
+        // 首次执行
+        Object result = joinPoint.proceed();
+        boolean shouldRetry = shouldRetry(result, retry.retryFor());
+        if (!shouldRetry) {
+            return result;
+        }
+        if (retry.isAsync()) {
+            asyncRetry(joinPoint, retry, signature);
+            return result;
+        }
+        return syncRetry(joinPoint, retry, signature);
+    }
+
+    private void asyncRetry(ProceedingJoinPoint joinPoint, Retry retry, MethodSignature signature) {
+        CompletableFuture.supplyAsync(() -> syncRetry(joinPoint, retry, signature));
+    }
+
+
+    private Object syncRetry(ProceedingJoinPoint joinPoint, Retry retry,MethodSignature signature) {
         int count = retry.count();
         String condition = retry.retryFor();
         return reTry( v -> {
@@ -47,7 +68,7 @@ public class RetryAspect {
                 }
                 throw new RuntimeException(e);
             }
-        }, (v) -> shouldRetry(v, condition), count);
+        }, (v) -> shouldRetry(v, condition), count,retry.retryInterval());
     }
 
     private boolean isRetryException(Throwable e, Class<? extends Throwable>[] classes) {
@@ -82,7 +103,8 @@ public class RetryAspect {
      * @param reTryCount 重试次数
      * @return 重试方法的返回值
      */
-    private static <V> V reTry(Function<Void,V> func, Function<V,Boolean> reTryCondition, int reTryCount) {
+    private static <V> V reTry(Function<Void,V> func, Function<V,Boolean> reTryCondition,
+                               int reTryCount,long retryInterval) {
         reTryCount = reTryCount - 1;
         V v = null;
         boolean reTry;
@@ -97,8 +119,20 @@ public class RetryAspect {
             }
         }
         if (reTry && reTryCount > 0) {
-            v = reTry(func,reTryCondition,reTryCount);
+            sleepWithInterval(retryInterval);
+            v = reTry(func,reTryCondition,reTryCount,retryInterval);
         }
         return v;
+    }
+
+    private static void sleepWithInterval(long retryInterval) {
+        if (retryInterval <= 0L) {
+            return;
+        }
+        try {
+            Thread.sleep(retryInterval);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

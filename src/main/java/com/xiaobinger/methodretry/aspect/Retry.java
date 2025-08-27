@@ -1,6 +1,7 @@
 package com.xiaobinger.methodretry.aspect;
 
 import com.xiaobinger.methodretry.exception.RetryException;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.lang.annotation.*;
 
@@ -25,6 +26,15 @@ public @interface Retry {
      */
     String retryFor() default "";
 
+    /**
+     * 异步重试
+     */
+    boolean isAsync() default false;
+
+    /**
+     * 重试间隔时间 毫秒 默认1秒
+     */
+    long retryInterval() default 0L;
     /**
      * 重试异常类型
      */
