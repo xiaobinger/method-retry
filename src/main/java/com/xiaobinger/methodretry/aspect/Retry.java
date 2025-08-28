@@ -30,7 +30,10 @@ public @interface Retry {
      * 异步重试
      */
     boolean isAsync() default false;
-
+    /**
+     * 首次重试延迟时间 毫秒 默认0秒
+     */
+    long delay() default 0L;
     /**
      * 重试间隔时间 毫秒 默认1秒
      */

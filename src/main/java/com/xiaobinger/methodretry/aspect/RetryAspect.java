@@ -1,7 +1,6 @@
 
 package com.xiaobinger.methodretry.aspect;
 
-import com.sun.xml.internal.ws.util.CompletedFuture;
 import com.xiaobinger.methodretry.exception.RetryException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -47,11 +46,13 @@ public class RetryAspect {
             asyncRetry(joinPoint, retry, signature);
             return result;
         }
+        //同步重试首次延迟时间
+        sleepWithInterval(retry.delay());
         return syncRetry(joinPoint, retry, signature);
     }
 
     private void asyncRetry(ProceedingJoinPoint joinPoint, Retry retry, MethodSignature signature) {
-        CompletableFuture.supplyAsync(() -> syncRetry(joinPoint, retry, signature));
+        CompletableFuture.supplyAsync(() -> syncRetry(joinPoint, retry, signature)).join();
     }
 
 
