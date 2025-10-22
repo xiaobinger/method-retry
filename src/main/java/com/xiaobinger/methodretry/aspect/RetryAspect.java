@@ -14,6 +14,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -37,8 +38,13 @@ public class RetryAspect {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Retry retry = signature.getMethod().getAnnotation(Retry.class);
         // 首次执行
-        Object result = joinPoint.proceed();
-        boolean shouldRetry = shouldRetry(result, retry.retryFor());
+        Object result = null;
+        try {
+            result = joinPoint.proceed();
+        } catch (Throwable e) {
+            log.error("方法重试异常，请求路径：{}", signature.getMethod().getName(), e);
+        }
+        boolean shouldRetry = shouldRetry(result, retry.retryFor()) || Objects.isNull(result);
         if (!shouldRetry) {
             return result;
         }
