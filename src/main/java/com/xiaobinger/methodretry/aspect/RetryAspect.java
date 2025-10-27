@@ -34,7 +34,7 @@ public class RetryAspect {
     }
 
     @Around("retryPointcut()")
-    public Object retryForCondition(ProceedingJoinPoint joinPoint) throws Throwable {
+    public Object retryForCondition(ProceedingJoinPoint joinPoint) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Retry retry = signature.getMethod().getAnnotation(Retry.class);
         // 首次执行
@@ -43,6 +43,9 @@ public class RetryAspect {
             result = joinPoint.proceed();
         } catch (Throwable e) {
             log.error("方法重试异常，请求路径：{}", signature.getMethod().getName(), e);
+            if (!isRetryException(e, retry.retryWithExceptions())) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
         }
         boolean shouldRetry = shouldRetry(result, retry.retryFor()) || Objects.isNull(result);
         if (!shouldRetry) {
