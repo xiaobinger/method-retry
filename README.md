@@ -19,5 +19,10 @@ tips:
 @Retry(count = 3, retryFor = "#result.code == 500", value = {RetryException.class})
 public String retryMethod(String param) {return "retryMethod";}
 ```
+
+版本记录:
+<li>v1.0.0 创建</li>
+<li>v1.0.1 首次执行异常拦截处理</li>
+<li>v1.0.2 首次异常判断是否命中重试异常,否则中断重试</li>
 需要注意的一个点是,该注解只对Spring容器管理的Bean代理的方法有效。
 
