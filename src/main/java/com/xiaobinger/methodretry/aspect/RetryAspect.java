@@ -61,7 +61,7 @@ public class RetryAspect {
     }
 
     private void asyncRetry(ProceedingJoinPoint joinPoint, Retry retry, MethodSignature signature) {
-        CompletableFuture.supplyAsync(() -> syncRetry(joinPoint, retry, signature)).join();
+        new Thread(() -> syncRetry(joinPoint, retry, signature)).start();
     }
 
 
